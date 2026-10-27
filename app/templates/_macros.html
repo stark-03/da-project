@@ -1,0 +1,24 @@
+{% macro field(f, attrs={}) %}
+  <div class="field{% if f.errors %} has-error{% endif %}">
+    {{ f.label }}
+    {{ f(**attrs) }}
+    {% for error in f.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+  </div>
+{% endmacro %}
+
+{% macro label_badge(label) %}
+  {% set text = {'genuine': 'Genuine', 'suspicious': 'Suspicious', 'inconclusive': 'Inconclusive'} %}
+  <span class="badge badge-{{ label }}">{{ text.get(label, label) }}</span>
+{% endmacro %}
+
+{% macro status_badge(document) %}
+  {% if document.result %}
+    {{ label_badge(document.result.result_label) }}
+  {% elif document.status == 'failed' %}
+    <span class="badge badge-failed">Failed</span>
+  {% elif document.status == 'processing' %}
+    <span class="badge badge-pending">Processing</span>
+  {% else %}
+    <span class="badge badge-pending">Not verified</span>
+  {% endif %}
+{% endmacro %}

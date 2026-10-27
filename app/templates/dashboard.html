@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Your documents</h1>
+    <p class="muted">Upload a tenant's identity or rental document, preview it, then run verification.</p>
+  </div>
+  <a class="button primary" href="{{ url_for('documents.upload') }}">Upload document</a>
+</div>
+
+<section class="stats" aria-label="Summary">
+  <div class="stat"><span class="stat-value">{{ counts.total }}</span><span class="stat-label">Uploaded</span></div>
+  <div class="stat stat-genuine"><span class="stat-value">{{ counts.genuine }}</span><span class="stat-label">Genuine</span></div>
+  <div class="stat stat-suspicious"><span class="stat-value">{{ counts.suspicious }}</span><span class="stat-label">Suspicious</span></div>
+  <div class="stat stat-inconclusive"><span class="stat-value">{{ counts.inconclusive }}</span><span class="stat-label">Inconclusive</span></div>
+  <div class="stat"><span class="stat-value">{{ counts.pending + counts.failed }}</span><span class="stat-label">Not verified / failed</span></div>
+</section>
+
+{% if documents %}
+<div class="table-wrap">
+  <table class="table">
+    <thead>
+      <tr><th>Document</th><th>Type</th><th>Uploaded (UTC)</th><th>Result</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for document in documents %}
+      <tr>
+        <td class="truncate" title="{{ document.original_filename }}">{{ document.original_filename }}</td>
+        <td>{{ document.type_label }}</td>
+        <td>{{ document.uploaded_at.strftime('%d %b %Y, %H:%M') }}</td>
+        <td>{{ status_badge(document) }}</td>
+        <td><a href="{{ url_for('documents.detail', document_id=document.id) }}">Open</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<section class="card empty">
+  <h2>No documents yet</h2>
+  <p class="muted">Start by uploading a clear photo or scan of the document.</p>
+  <a class="button primary" href="{{ url_for('documents.upload') }}">Upload document</a>
+</section>
+{% endif %}
+{% endblock %}

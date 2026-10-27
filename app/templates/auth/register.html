@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<section class="card narrow">
+  <h1>Create an owner account</h1>
+  <p class="muted">Your uploaded documents are visible only to you.</p>
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {{ field(form.name, {'autocomplete': 'name', 'required': true}) }}
+    {{ field(form.email, {'autocomplete': 'email', 'required': true}) }}
+    {{ field(form.phone, {'autocomplete': 'tel'}) }}
+    {{ field(form.password, {'autocomplete': 'new-password', 'required': true, 'minlength': 8}) }}
+    {{ field(form.confirm, {'autocomplete': 'new-password', 'required': true}) }}
+    {{ form.submit(class_="button primary") }}
+  </form>
+  <p class="muted">Already registered? <a href="{{ url_for('auth.login') }}">Sign in</a></p>
+</section>
+{% endblock %}

@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, label_badge %}
+{% block title %}{{ document.original_filename }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <p class="crumb"><a href="{{ url_for('main.dashboard') }}">Dashboard</a> / Document #{{ document.id }}</p>
+    <h1 class="truncate">{{ document.original_filename }}</h1>
+    <p class="muted">{{ document.type_label }} · {{ document.width }}×{{ document.height }} px ·
+      {{ (document.file_size / 1024)|round(0)|int }} KB · uploaded {{ document.uploaded_at.strftime('%d %b %Y, %H:%M') }} UTC</p>
+  </div>
+  <div>{{ status_badge(document) }}</div>
+</div>
+
+<div class="grid-2 detail-grid">
+  <section class="card">
+    <h2>Document preview</h2>
+    {% if document.has_file %}
+      <div class="overlay-wrap" id="overlay-wrap"
+           data-width="{{ document.width }}" data-height="{{ document.height }}">
+        <img src="{{ url_for('documents.image', document_id=document.id) }}" alt="Uploaded document" id="doc-image">
+        {% if result %}
+          {% for area in result.highlighted_area %}
+            <div class="hl hl-{{ area.severity }}" data-x="{{ area.x }}" data-y="{{ area.y }}"
+                 data-w="{{ area.w }}" data-h="{{ area.h }}" title="{{ area.label }}">
+              <span class="hl-label">{{ loop.index }}</span>
+            </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+      {% if result and result.highlighted_area %}
+        <label class="toggle"><input type="checkbox" id="toggle-highlights" checked> Show highlighted areas</label>
+        <ol class="hl-legend">
+          {% for area in result.highlighted_area %}
+            <li><span class="dot dot-{{ area.severity }}"></span>{{ area.label }} ({{ area.severity }})</li>
+          {% endfor %}
+        </ol>
+      {% endif %}
+    {% else %}
+      <p class="muted">The image was deleted by the retention policy{% if document.file_deleted_at %} on {{ document.file_deleted_at.strftime('%d %b %Y') }}{% endif %}.</p>
+    {% endif %}
+
+    <div class="actions">
+      {% if document.has_file %}
+        <form method="post" action="{{ url_for('documents.verify', document_id=document.id) }}" class="inline-form" id="verify-form">
+          {{ action_form.hidden_tag() }}
+          <button type="submit" class="button primary" id="verify-button">
+            {% if result or document.status == 'failed' %}Run verification again{% else %}Start verification{% endif %}
+          </button>
+        </form>
+      {% endif %}
+      <form method="post" action="{{ url_for('documents.delete', document_id=document.id) }}" class="inline-form" id="delete-form">
+        {{ action_form.hidden_tag() }}
+        <button type="submit" class="button danger">Delete document</button>
+      </form>
+    </div>
+    <p class="muted small" id="verify-progress" hidden>Analysing… text extraction can take up to a minute.</p>
+  </section>
+
+  <section class="card">
+    {% if result %}
+      <div class="verdict verdict-{{ result.result_label }}">
+        <div class="verdict-head">
+          {{ label_badge(result.result_label) }}
+          <h2>{{ result.label_enum.display }}</h2>
+        </div>
+        <h3>Why this result</h3>
+        <ul>{% for reason in result.reasons %}<li>{{ reason }}</li>{% endfor %}</ul>
+        <dl class="meta">
+          <div><dt>Indicator score</dt><dd>{{ result.indicator_score|round(1) }} <span class="muted small">(rule weights, not a probability)</span></dd></div>
+          <div><dt>Decision engine</dt><dd>{{ result.engine_name }} v{{ result.engine_version }}</dd></div>
+          <div><dt>Analysed</dt><dd>{{ result.analysis_time.strftime('%d %b %Y, %H:%M') }} UTC{% if result.processing_ms %} in {{ (result.processing_ms / 1000)|round(1) }} s{% endif %}</dd></div>
+        </dl>
+      </div>
+    {% elif document.status == 'failed' %}
+      <div class="verdict verdict-failed">
+        <h2>Verification failed</h2>
+        <p>{{ document.error_message or 'The analysis could not be completed.' }}</p>
+        <p class="muted">No result has been produced. Fix the problem above and run verification again.</p>
+      </div>
+    {% else %}
+      <h2>Not verified yet</h2>
+      <p class="muted">Check that the preview shows the whole document clearly, then press <strong>Start verification</strong>.
+        The system will extract the text, check alignment, blurred regions, the photograph and signs of alteration.</p>
+    {% endif %}
+  </section>
+</div>
+
+{% if result %}
+<section class="card">
+  <h2>Findings</h2>
+  <p class="muted small">
+    <span class="kind kind-indicator">Indicator</span> possible alteration evidence (counts towards the score) ·
+    <span class="kind kind-quality">Quality</span> capture problem (never treated as fraud) ·
+    <span class="kind kind-info">Info</span> check result / context
+  </p>
+  {% for category, findings in grouped_findings.items() %}
+    <h3 class="category">{{ category }}</h3>
+    {% for f in findings %}
+      <details class="finding finding-{{ f.kind }}" {% if f.kind == 'indicator' %}open{% endif %}>
+        <summary>
+          <span class="kind kind-{{ f.kind }}">{{ f.kind|capitalize }}</span>
+          {% if f.severity != 'none' %}<span class="sev sev-{{ f.severity }}">{{ f.severity }}</span>{% endif %}
+          <span class="finding-title">{{ f.title }}</span>
+        </summary>
+        <p>{{ f.description }}</p>
+        {% if f.limitation %}<p class="limitation"><strong>Limitation:</strong> {{ f.limitation }}</p>{% endif %}
+        {% if f.evidence %}
+          <details class="evidence"><summary>Measured evidence</summary>
+            <pre>{{ f.evidence|tojson(indent=2) }}</pre>
+          </details>
+        {% endif %}
+      </details>
+    {% endfor %}
+  {% endfor %}
+</section>
+
+<div class="grid-2">
+  <section class="card">
+    <h2>Extracted text (OCR)</h2>
+    <p class="muted small">
+      {% if result.ocr_word_count is not none %}{{ result.ocr_word_count }} words{% endif %}
+      {% if result.ocr_mean_confidence is not none %} · mean confidence {{ result.ocr_mean_confidence|round(1) }}/100{% endif %}
+      {% if result.ocr_engine %} · {{ result.ocr_engine }}{% endif %}
+    </p>
+    {% if result.ocr_text %}
+      <pre class="ocr-text">{{ result.ocr_text }}</pre>
+    {% elif result.ocr_text is none and not document.has_file %}
+      <p class="muted">Extracted text was deleted by the retention policy.</p>
+    {% else %}
+      <p class="muted">No text could be extracted.</p>
+    {% endif %}
+    <p class="muted small">OCR extracts text only; it does not confirm the text is true. OCR mistakes are common on stamps, holograms and non-English script.</p>
+  </section>
+  <section class="card">
+    <h2>Image quality & processing</h2>
+    <dl class="meta">
+      {% set q = result.quality_metrics %}
+      <div><dt>Sharpness (Laplacian variance)</dt><dd>{{ q.sharpness_laplacian_var }}</dd></div>
+      <div><dt>Brightness (0–255)</dt><dd>{{ q.brightness_mean }}</dd></div>
+      <div><dt>Contrast (std)</dt><dd>{{ q.contrast_std }}</dd></div>
+      <div><dt>Skew corrected</dt><dd>{{ q.deskew_angle_deg }}°</dd></div>
+      <div><dt>Document outline detected</dt><dd>{{ 'Yes' if q.document_outline_detected else 'No' }}</dd></div>
+    </dl>
+    <h3>Limitations of this result</h3>
+    <ul class="small">{% for item in result.limitations %}<li>{{ item }}</li>{% endfor %}</ul>
+  </section>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/document.js') }}"></script>{% endblock %}

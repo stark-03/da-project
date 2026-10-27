@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}How it works{% endblock %}
+{% block content %}
+<section class="card prose">
+  <h1>How verification works</h1>
+  <ol>
+    <li><strong>Upload & preview.</strong> The image is checked (type, real content, size) and stored privately — only you can view it.</li>
+    <li><strong>Pre-processing.</strong> The image is resized, its perspective and tilt are corrected, and a denoised, contrast-enhanced copy is made for text extraction. The original is never changed.</li>
+    <li><strong>Text extraction (OCR).</strong> Tesseract OCR reads the text and the position of every word.</li>
+    <li><strong>Analysis.</strong> Independent checks measure:
+      <ul>
+        <li>text alignment — are all lines parallel and words on their baselines?</li>
+        <li>blurred or unclear regions — is any area much blurrier than the rest?</li>
+        <li>the photograph — is it sharp, and do its sharpness and noise match the document?</li>
+        <li>possible alterations — does any region have different image noise or JPEG compression history?</li>
+        <li>image quality — focus, exposure, contrast and OCR readability.</li>
+      </ul>
+    </li>
+    <li><strong>Decision.</strong> A transparent rule-based engine combines the findings into a result.</li>
+  </ol>
+
+  <h2>What the results mean</h2>
+  <dl class="glossary">
+    <dt><span class="badge badge-genuine">Genuine</span></dt>
+    <dd>No significant indicators of alteration were found by these checks. It is <strong>not</strong> proof the document is authentic or belongs to the person presenting it.</dd>
+    <dt><span class="badge badge-suspicious">Suspicious</span></dt>
+    <dd>Several or strong indicators of possible alteration were measured. Inspect the highlighted areas and the physical document; it does not prove fraud.</dd>
+    <dt><span class="badge badge-inconclusive">Inconclusive</span></dt>
+    <dd>The image quality was too poor, the text unreadable, or the evidence mixed. A safe decision cannot be made automatically — retake the photo or check manually.</dd>
+  </dl>
+
+  <h2>Important limitations</h2>
+  <ul>
+    <li>No government or issuer database is checked.</li>
+    <li>The decision engine is rule-based. No machine-learning model has been trained yet because no labelled dataset of genuine and forged documents is available, so <strong>no accuracy figure exists</strong>.</li>
+    <li>The indicator score is a sum of rule weights, not a probability.</li>
+    <li>Skilled forgeries, or documents altered before printing, may show no visual indicators. Genuine documents photographed with glare, folds or stamps may show indicators.</li>
+  </ul>
+
+  <h2>Privacy</h2>
+  <p>Documents are visible only to the account that uploaded them. Images and extracted text are deleted automatically after {{ config.RETENTION_DAYS }} days, and you can delete a document at any time.</p>
+</section>
+{% endblock %}

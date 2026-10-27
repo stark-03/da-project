@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field %}
+{% block title %}Upload document{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Upload document</h1></div>
+<div class="grid-2">
+  <section class="card">
+    <form method="post" enctype="multipart/form-data" novalidate id="upload-form"
+          data-max-bytes="{{ config.MAX_CONTENT_LENGTH }}" data-allowed="{{ config.ALLOWED_EXTENSIONS|sort|join(',') }}">
+      {{ form.hidden_tag() }}
+      {{ field(form.document_type) }}
+      {{ field(form.document, {'accept': 'image/jpeg,image/png', 'required': true}) }}
+      <p class="hint">JPG or PNG, up to {{ config.MAX_UPLOAD_MB }} MB, at least {{ config.MIN_IMAGE_SIDE_PX }} px on each side.
+        On a phone you can take a photo directly.</p>
+      <p class="field-error" id="client-error" hidden></p>
+      {{ form.submit(class_="button primary", id="upload-submit") }}
+    </form>
+    <div class="tips">
+      <h2>For a reliable check</h2>
+      <ul>
+        <li>Photograph the <strong>whole</strong> document, flat, filling most of the frame.</li>
+        <li>Use even light — avoid glare on laminated cards and shadows.</li>
+        <li>Hold the camera steady so the text is in sharp focus.</li>
+        <li>Upload the original photo, not a screenshot or forwarded/compressed copy.</li>
+      </ul>
+    </div>
+  </section>
+  <section class="card preview-card" aria-live="polite">
+    <h2>Preview</h2>
+    <div class="preview-empty" id="preview-empty">Choose an image to preview it here before uploading.</div>
+    <img id="preview-image" alt="Preview of the selected document" hidden>
+    <p class="muted small" id="preview-meta"></p>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/upload.js') }}"></script>{% endblock %}

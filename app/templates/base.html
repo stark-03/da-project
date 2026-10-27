@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}AI Rental Scam Detector{% endblock %} · AI Rental Scam Detector</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="icon" href="{{ url_for('static', filename='images/favicon.svg') }}" type="image/svg+xml">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="{{ url_for('main.dashboard') }}">
+        <img src="{{ url_for('static', filename='images/favicon.svg') }}" alt="" width="28" height="28">
+        <span>AI Rental Scam Detector</span>
+      </a>
+      <nav class="nav" aria-label="Main">
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
+          <a href="{{ url_for('documents.upload') }}">Upload</a>
+          <a href="{{ url_for('main.about') }}">How it works</a>
+          <form method="post" action="{{ url_for('auth.logout') }}" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="link-button">Sign out ({{ current_user.name }})</button>
+          </form>
+        {% else %}
+          <a href="{{ url_for('main.about') }}">How it works</a>
+          <a href="{{ url_for('auth.login') }}">Sign in</a>
+          <a href="{{ url_for('auth.register') }}">Register</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="container" id="main">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flashes" role="status">
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      Automated visual screening only — results are not proof of authenticity.
+      <a href="{{ url_for('main.about') }}">Read how results are produced</a>.
+    </div>
+  </footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
